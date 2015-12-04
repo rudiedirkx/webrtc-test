@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<title>Friend</title>
+</head>
+
+<body>
+
+<video></video>
+
+<p>
+	Offer (in):<br />
+	<textarea rows="4" cols="60" class="input"></textarea><br />
+	<button>ACCEPT</button>
+</p>
+
+<p>
+	Answer (out):<br />
+	<textarea rows="4" cols="60" class="output"></textarea>
+</p>
+
+<script src="adapter.js"></script>
+<script>
+var onError = console.warn.bind(console);
+
+var $video = document.querySelector('video');
+$video.onloadedmetadata = function(e) {
+	$video.play();
+};
+
+var $taOut = document.querySelector('textarea.output');
+var $taIn = document.querySelector('textarea.input');
+var $btIn = document.querySelector('button');
+
+$btIn.onclick = function() {
+	RECEIVE(JSON.parse($taIn.value));
+};
+
+var pc = new RTCPeerConnection;
+pc.onaddstream = function(e) {
+	console.debug('onaddstream', e);
+	if (e.target) {
+		// var src = URL.createObjectURL(e.stream);
+		// console.debug('src', src);
+		// $video.src = src;
+
+		$video.srcObject = e.stream;
+	}
+};
+
+function RECEIVE(offer) {
+	console.debug('RECEIVE', offer);
+
+	getUserMedia({audio: true, video: true}, function(stream) {
+		pc.onaddstream({stream: stream});
+		pc.addStream(stream);
+
+		pc.setRemoteDescription(new RTCSessionDescription(offer), function() {
+			pc.createAnswer(function(answer) {
+				var sdesc = new RTCSessionDescription(answer);
+				pc.setLocalDescription(sdesc, function() {
+					// window.answer = answer;
+
+					$taOut.value = JSON.stringify({
+						type: answer.type,
+						sdp: answer.sdp,
+					});
+				}, onError);
+			}, onError);
+		}, onError);
+
+	}, onError);
+}
+</script>
+
+</body>
+
+</html>

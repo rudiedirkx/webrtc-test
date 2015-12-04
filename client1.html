@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<title>Client</title>
+</head>
+
+<body>
+
+<video></video>
+
+<p>
+	<a target="_blank" href="https://webrtcfriend.home.hotblocks.nl/friend1.html">Open friend</a>
+	|
+	<a class="start" href="#">START</a>
+</p>
+
+<p>
+	Offer (out):<br />
+	<textarea rows="4" cols="60" class="output"></textarea>
+</p>
+
+<p>
+	Answer (in):<br />
+	<textarea rows="4" cols="60" class="input"></textarea><br />
+	<button>ACCEPT</button>
+</p>
+
+<script src="adapter.js"></script>
+<script>
+var onError = console.warn.bind(console);
+
+var $taOut = document.querySelector('textarea.output');
+var $taIn = document.querySelector('textarea.input');
+var $btIn = document.querySelector('button');
+
+$btIn.onclick = function() {
+	RECEIVE(JSON.parse($taIn.value));
+};
+
+var $video = document.querySelector('video');
+$video.onloadedmetadata = function(e) {
+	console.debug('onloadedmetadata');
+	$video.play();
+};
+
+var pc = new RTCPeerConnection;
+pc.onaddstream = function(e) {
+	console.debug('onaddstream', e);
+	if (e.target) {
+		// var src = URL.createObjectURL(e.stream);
+		// console.debug('src', src);
+		// $video.src = src;
+
+		$video.srcObject = e.stream;
+	}
+};
+
+function RECEIVE(answer) {
+	console.debug('RECEIVE', answer);
+
+	pc.setRemoteDescription(new RTCSessionDescription(answer), function() {
+		console.log('done?');
+	}, onError);
+}
+
+var $a = document.querySelector('a.start');
+$a.onclick = function(e) {
+	e.preventDefault();
+
+	getUserMedia({audio: true, video: true}, function(stream) {
+		// pc.onaddstream({stream: stream, target: 1});
+		pc.onaddstream({stream: stream});
+		pc.addStream(stream);
+
+		pc.createOffer(function(offer) {
+			var sdesc = new RTCSessionDescription(offer);
+			pc.setLocalDescription(sdesc, function() {
+				$taOut.value = JSON.stringify({
+					type: offer.type,
+					sdp: offer.sdp,
+				});
+
+				// sendOffer = offer;
+				// if (ready) {
+				// 	friend.RECEIVE(sendOffer);
+				// }
+				// ready = true;
+			}, onError);
+		}, onError);
+
+	}, onError);
+}
+</script>
+
+</body>
+
+</html>
